@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saan Tayo Kape? — Panabo Cafe Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --cream: #FBF1E1;
+    --paper: #FFFBF3;
+    --espresso: #3B2417;
+    --cinnamon: #8B5A3C;
+    --orange: #E2823E;
+    --orange-deep: #C1662A;
+    --foam: #F6DEC0;
+    --line: rgba(59,36,23,0.14);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--cream);
+    color:var(--espresso);
+    font-family:'Work Sans', sans-serif;
+    line-height:1.5;
+  }
+  h1,h2,h3,.display{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    margin:0;
+  }
+  a{color:inherit;}
+
+  /* Hero with Opacized Background */
+  .hero-wrap {
+    padding: 20px 24px 0;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .hero{
+    position: relative;
+    padding:60px 40px;
+    border-radius: 16px;
+    overflow: hidden;
+    background-color: var(--cream);
+    /* Faded background image */
+    background-image: linear-gradient(rgba(251, 241, 225, 0.88), rgba(251, 241, 225, 0.95)), url('https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=1600&q=80');
+    background-size: cover;
+    background-position: center;
+    border: 1px solid var(--line);
+    box-shadow: 0 4px 20px rgba(59,36,23,0.05);
+  }
+  .hero .kicker{
+    color:var(--orange-deep);
+    font-size:0.95rem;
+    margin:0 0 14px;
+    font-weight:600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .hero h1{
+    font-size:clamp(2.4rem, 6vw, 4rem);
+    line-height:1.04;
+    letter-spacing:-0.01em;
+    color:var(--espresso);
+  }
+  .hero h1 em{
+    font-style:italic;
+    color:var(--orange-deep);
+  }
+  .hero p{
+    max-width:60ch;
+    color:var(--espresso);
+    font-size:1.1rem;
+    margin-top:16px;
+    opacity: 0.85;
+  }
+
+  /* Map */
+  .map-wrap{
+    max-width:1200px;
+    margin:28px auto 0;
+    padding:0 24px;
+  }
+  #map{
+    height:400px;
+    width:100%;
+    border-radius:12px;
+    border:1px solid var(--line);
+    filter: sepia(10%) saturate(90%); 
+  }
+  .map-hint{
+    font-size:0.85rem;
+    color:var(--cinnamon);
+    margin-top:10px;
+  }
+  .leaflet-popup-content-wrapper{
+    background:var(--paper);
+    color:var(--espresso);
+    border-radius:8px;
+    font-family:'Work Sans',sans-serif;
+  }
+  .leaflet-popup-content{ margin:14px 16px; }
+  .popup-name{ font-family:'Fraunces',serif; font-size:1.1rem; margin-bottom:2px; font-weight:600;}
+  .popup-meta{ font-size:0.8rem; color:var(--cinnamon); }
+  .leaflet-popup-tip{ background:var(--paper); }
+
+  /* Controls */
+  .controls{
+    max-width:1200px;
+    margin:0 auto;
+    padding:26px 24px 0;
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    align-items:center;
+  }
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .chip{
+    border:1px solid var(--line);
+    background:var(--paper);
+    color:var(--cinnamon);
+    font-family:'Work Sans',sans-serif;
+    font-size:0.85rem;
+    padding:8px 16px;
+    border-radius:100px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition: all .2s;
+  }
+  .chip:hover {
+    background: var(--foam);
+  }
+  .chip.active{
+    border-color:var(--orange-deep);
+    background:var(--orange);
+    color:var(--paper);
+    font-weight:600;
+  }
+  select#sortSel{
+    background:var(--paper);
+    border:1px solid var(--line);
+    color:var(--espresso);
+    font-family:'Work Sans',sans-serif;
+    font-size:0.9rem;
+    padding:10px 16px;
+    border-radius:100px;
+    margin-left: auto;
+    cursor: pointer;
+  }
+
+  .count{
+    max-width:1200px;
+    margin:24px auto 0;
+    padding:0 24px;
+    font-size:0.9rem;
+    color:var(--cinnamon);
+    font-weight: 500;
+  }
+
+  /* Grid Layout */
+  .grid{
+    max-width:1200px;
+    margin:0 auto;
+    padding:16px 24px 80px;
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap:24px;
+  }
+  
+  /* Card Design */
+  .card{
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:var(--paper);
+    overflow:hidden; 
+    display:flex;
+    flex-direction: column;
+    transition: transform .2s, box-shadow .2s, border-color .2s;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(59,36,23,0.08);
+  }
+  .card.highlight{
+    border-color:var(--orange-deep);
+    box-shadow: 0 0 0 3px rgba(226,130,62,0.18);
+    transform: translateY(-4px);
+  }
+  
+  .card-photo {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-bottom: 1px solid var(--line);
+    display: block;
+  }
+  
+  .no-photo {
+    width: 100%;
+    height: 200px;
+    background-color: var(--foam);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--orange-deep);
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem;
+  }
+
+  .card-content {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .card .name{
+    font-size:1.4rem;
+    color:var(--espresso);
+    line-height: 1.2;
+  }
+  .card .locality{
+    font-size:0.85rem;
+    color:var(--orange-deep);
+    margin-top:6px;
+    font-weight:600;
+  }
+  .card .price-tag {
+    font-family:'Fraunces',serif;
+    font-size:1.1rem;
+    color:var(--orange-deep);
+    white-space: nowrap;
+    background: var(--foam);
+    padding: 4px 10px;
+    border-radius: 8px;
+  }
+  .card .blurb{
+    color:#5A4130;
+    font-size:0.95rem;
+    margin-top:14px;
+    line-height: 1.6;
+    flex-grow: 1;
+  }
+  .card .tags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:16px;
+  }
+  .tag{
+    font-size:0.75rem;
+    padding:4px 10px;
+    border-radius:100px;
+    background:var(--cream);
+    border: 1px solid var(--line);
+    color:var(--cinnamon);
+    font-weight: 500;
+  }
+  .card .meta{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content: space-between;
+    gap:12px;
+    margin-top:20px;
+    padding-top:16px;
+    border-top:1px solid var(--line);
+    font-size:0.85rem;
+  }
+  .card .meta button, .card .meta a{
+    color:var(--orange-deep);
+    text-decoration:none;
+    font-weight: 600;
+    cursor:pointer;
+    background:none;
+    border:none;
+    font:inherit;
+    padding:0;
+    transition: opacity .2s;
+  }
+  .card .meta button:hover, .card .meta a:hover {
+    opacity: 0.7;
+  }
+  .empty{
+    max-width:1200px;
+    margin:40px auto;
+    padding:0 24px;
+    color:var(--cinnamon);
+    text-align: center;
+    font-size: 1.1rem;
+  }
+
+  footer{
+    max-width:1200px;
+    margin:0 auto;
+    padding:0 24px 50px;
+    color:var(--cinnamon);
+    opacity:0.7;
+    font-size:0.85rem;
+    text-align: center;
+  }
+
+  @media (max-width: 768px){
+    select#sortSel { margin-left: 0; width: 100%; }
+    .hero { padding: 40px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero-wrap">
+  <div class="hero">
+    <p class="kicker">Panabo City Local Guide</p>
+    <h1>Where to <em>kape</em><br>today?</h1>
+    <p>A curated list of Panabo's best coffee spots, bakeries, and late-night hangouts. Filter by vibe, find exactly what you're looking for, and see where they are on the map.</p>
+  </div>
+</div>
+
+<div class="map-wrap">
+  <div id="map"></div>
+  <p class="map-hint">Map updates as you filter. Tap a pin to highlight the cafe below, or click "Find on map" on any card.</p>
+</div>
+
+<div class="controls">
+  <div class="chips" id="tagChips"></div>
+  <select id="sortSel">
+    <option value="name">Sort: Name A–Z</option>
+    <option value="name-desc">Sort: Name Z–A</option>
+  </select>
+</div>
+
+<p class="count" id="countLabel"></p>
+<div class="grid" id="grid"></div>
+<div class="empty" id="emptyState" style="display:none;">No cafes match those filters. Try clearing a few.</div>
+
+<footer>Information updated based on local Panabo listings. Map data © OpenStreetMap & CARTO.</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const cafes = [
+  { id:1, name:"Bites And Brew", city:"Panabo",
+    address:"Purok 5, NDL Building",
+    lat:7.3094776, lng:125.6838438,
+    price:"₱100–₱400",
+    blurb:"A casual café and food spot offering coffee, frappes, burgers, fries, pasta, pizza, and other comfort food. It's a solid all-around choice when a group wants both drinks and a proper meal.",
+    tags:["Food", "Coffee", "Groups"],
+    photo: "photos/bts.png" },
+    
+  { id:2, name:"Coffee Maybe Panabo", city:"Panabo",
+    address:"Mabitad Extension",
+    lat:7.3035149, lng:125.6864503,
+    price:"₱200–₱500+",
+    blurb:"A relaxed café on Mabitad Extension with a modern coffee-shop feel. A good option for people looking for coffee, matcha, pastries, and light food in a more laid-back setting.",
+    tags:["Coffee", "Matcha", "Chill"],
+    photo: "photos/cmb.png" },
+    
+  { id:3, name:"8105 Brasserie", city:"Panabo",
+    address:"Qurino St., New Pandan",
+    lat:7.3011568, lng:125.6848472,
+    price:"₱500–₱1,000",
+    blurb:"A more polished restaurant and café-style establishment in New Pandan. It's better suited for people who want a full dining experience rather than just grabbing a cup of coffee.",
+    tags:["Dining", "Groups", "Upscale"],
+    photo: "photos/8105.png" },
+    
+  { id:4, name:"CN Cafe", city:"Panabo",
+    address:"Qurino St.",
+    lat:7.3050811, lng:125.6758858,
+    price:"₱100–₱500",
+    blurb:"A local Panabo coffee shop on Qurino Street with a simple, casual atmosphere. It's a straightforward choice for people who want coffee and a relaxed place to hang out without going somewhere too fancy.",
+    tags:["Coffee", "Hangouts", "Casual"],
+    photo: "photos/CN.png" },
+    
+  { id:5, name:"NABó", city:"Panabo",
+    address:"Purok 3-D, Deco Subdivision, Tadeco Rd.",
+    lat:7.3111071, lng:125.6768754,
+    price:"₱100–₱500",
+    blurb:"A café, restaurant, and lounge located near ACES College. NABó stands out for its late-night schedule, food selection, and evening events, making it particularly suitable for night owls.",
+    tags:["Late night", "Music", "Food"],
+    photo: "photos/Nabo.png" },
+    
+  { id:6, name:"Annipie Panabo", city:"Panabo",
+    address:"Eleventh Street Building, Panabo National Highway",
+    lat:7.3134871, lng:125.6858838,
+    price:"₱200–₱400",
+    blurb:"A bakery-café combining pastries, baked goods, drinks, and casual food. A nice pick if you're more into pairing coffee with something sweet or freshly baked.",
+    tags:["Pastries", "Desserts", "Coffee"],
+    photo: "photos/Ap.png" },
+    
+  { id:7, name:"Roadside Bakery + Cafe", city:"Panabo",
+    address:"AH26 Highway",
+    lat:7.3110769, lng:125.6854534,
+    price:"₱100–₱500",
+    blurb:"A bakery and café along the highway offering a combination of baked goods, drinks, and casual meals. Its roadside location makes it a convenient stop for people traveling through Panabo.",
+    tags:["Bakery", "Quick stop", "Coffee"],
+    photo: "photos/rbc.png" },
+    
+  { id:8, name:"Pablo&Estela Bistro Cafe", city:"Panabo",
+    address:"1575 Magsaysay Extension",
+    lat:7.3121819, lng:125.6864636,
+    price:"₱500–₱1,000",
+    blurb:"A more restaurant-oriented café and bistro with a polished atmosphere. It's a good fit for people looking for a proper meal alongside coffee or other drinks rather than a simple coffee-to-go experience.",
+    tags:["Dining", "Date/occasion", "Groups"],
+    photo: "photos/pebc.png" },
+    
+  { id:9, name:"Rookie Cafe", city:"Panabo",
+    address:"Tadeco Rd.",
+    lat:7.3135, lng:125.6742,
+    price:"₱100–₱500",
+    blurb:"A small local café along Tadeco Road with a more lowkey feel. Its relatively small review footprint makes it an interesting choice for people who want to discover less-mainstream local spots.",
+    tags:["Chill", "Hidden gem", "Coffee"],
+    photo: "photos/rookie.png" },
+    
+  { id:10, name:"PSALMS Coffee and Pastry", city:"Panabo",
+    address:"Lauron, Gredu",
+    lat:7.3201, lng:125.6705,
+    price:"₱100–₱200",
+    blurb:"A coffee-and-pastry shop in Gredu offering espresso drinks, frappes, smoothies, flavored lattes, sandwiches, pasta, and rice meals. It's one of the more versatile options if you want both café drinks and actual food.",
+    tags:["Coffee", "Pastries", "Meals"],
+    photo: "photos/pslams.png" },
+    
+  { id:11, name:"Annex Coffee Roaster", city:"Panabo",
+    address:"Lauron St., Brgy. Gredu",
+    lat:7.3212, lng:125.6710,
+    price:"₱150–₱500+",
+    blurb:"A Panabo coffee shop focused more heavily on specialty coffee and roasting. It's a particularly interesting option for people who want to explore locally roasted coffee rather than just sweet café drinks.",
+    tags:["Specialty coffee", "Coffee lovers", "Coffee nerds"],
+    photo: "photos/annx.png" },
+    
+  { id:12, name:"Bug & Mug Cafe", city:"Panabo",
+    address:"Hall within Rivera Petron Station",
+    lat:7.3021, lng:125.6815,
+    price:"₱100–₱500",
+    blurb:"A quirky café with a distinctive vintage/automotive-inspired atmosphere. The décor and collectible-focused interior give it more personality than a typical minimalist coffee shop.",
+    tags:["Photos", "Unique vibe", "Hangouts"],
+    photo: "photos/bugmug.png" },
+    
+  { id:13, name:"Cafe Buenaventura", city:"Panabo",
+    address:"432 Purok 17, San Vicente",
+    lat:7.2952, lng:125.6601,
+    price:"₱200–₱400",
+    blurb:"A relaxed coffee shop in San Vicente with a more peaceful, open atmosphere. It's a good choice for people who want to escape the busier city-center café vibe and spend some time somewhere calmer.",
+    tags:["Relaxing", "Groups", "Coffee"],
+    photo: "photos/cavebue.png" },
+    
+  { id:14, name:"Arcoffee", city:"Panabo",
+    address:"Peda, Panabo",
+    lat:7.3155, lng:125.6901,
+    price:"~₱100–₱500",
+    blurb:"A very small local coffee shop in Peda. With only a handful of public reviews, it's one of the more genuinely lowkey options on the Panabo list.",
+    tags:["Hidden gem", "Coffee", "Lowkey"],
+    photo: "photos/arco.png" },
+    
+];
+
+// Automatically generate filter tags based on the data
+const rawTags = [];
+cafes.forEach(c => c.tags.forEach(t => rawTags.push(t)));
+const allTags = [...new Set(rawTags)].sort();
+
+let activeTags = new Set();
+let sortBy = "name";
+
+const grid = document.getElementById('grid');
+const countLabel = document.getElementById('countLabel');
+const emptyState = document.getElementById('emptyState');
+
+function mapsUrl(c){
+  return "https://www.google.com/maps/search/?api=1&query=" + c.lat + "," + c.lng;
+}
+
+
+/* --- ESRI Map Setup (No API Key Required) --- */
+const map = L.map('map', { scrollWheelZoom:false }).setView([7.309, 125.683], 13);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+  attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012',
+  maxZoom: 18
+}).addTo(map);
+
+function pinIcon(){
+  return L.divIcon({
+    className: '',
+    html: `<svg width="28" height="36" viewBox="0 0 26 34" xmlns="http://www.w3.org/2000/svg">
+      <path d="M13 0C5.8 0 0 5.8 0 13c0 9.7 13 21 13 21s13-11.3 13-21C26 5.8 20.2 0 13 0z" fill="#C1662A"/>
+      <circle cx="13" cy="12.5" r="5" fill="#FFFBF3"/>
+    </svg>`,
+    iconSize:[28,36],
+    iconAnchor:[14,34],
+    popupAnchor:[0,-32]
+  });
+}
+const customMarker = pinIcon();
+let markerLayer = L.layerGroup().addTo(map);
+const markerById = {};
+
+function rebuildMarkers(list){
+  markerLayer.clearLayers();
+  for (const k in markerById) delete markerById[k];
+  list.forEach(c => {
+    const m = L.marker([c.lat, c.lng], { icon: customMarker });
+    m.bindPopup(`<div class="popup-name">${c.name}</div><div class="popup-meta">${c.price}</div>`);
+    m.on('click', () => focusCard(c.id));
+    m.addTo(markerLayer);
+    markerById[c.id] = m;
+  });
+}
+
+function focusCard(id){
+  const card = document.getElementById('cafe-' + id);
+  if(!card) return;
+  card.scrollIntoView({behavior:'smooth', block:'center'});
+  card.classList.add('highlight');
+  setTimeout(()=> card.classList.remove('highlight'), 1600);
+}
+
+function focusMarker(c){
+  map.flyTo([c.lat, c.lng], 16, { duration:0.6 });
+  const m = markerById[c.id];
+  if(m) m.openPopup();
+  document.getElementById('map').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function render(){
+  let list = cafes.slice();
+  
+  if(activeTags.size){
+    list = list.filter(c => [...activeTags].every(t => c.tags.includes(t)));
+  }
+  
+  if(sortBy === "name") list.sort((a,b)=> a.name.localeCompare(b.name));
+  if(sortBy === "name-desc") list.sort((a,b)=> b.name.localeCompare(a.name));
+
+  countLabel.textContent = `Showing ${list.length} Panabo ${list.length===1 ? "cafe" : "cafes"}`;
+  grid.innerHTML = "";
+  emptyState.style.display = list.length ? "none" : "block";
+  rebuildMarkers(list);
+
+  list.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = 'cafe-' + c.id;
+    
+    // Checks if photo exists. If not, drops in the styling block for 'No Photo'
+    const photoHTML = c.photo 
+      ? `<img src="${c.photo}" alt="Photo of ${c.name}" class="card-photo" loading="lazy" />`
+      : `<div class="no-photo">No Photo Available</div>`;
+
+    card.innerHTML = `
+      ${photoHTML}
+      <div class="card-content">
+        <div class="card-header">
+          <div>
+            <div class="name display">${c.name}</div>
+            <div class="locality">${c.address}</div>
+          </div>
+          <div class="price-tag">${c.price}</div>
+        </div>
+        <div class="blurb">${c.blurb}</div>
+        <div class="tags">${c.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+        <div class="meta">
+          <button data-id="${c.id}" class="findmap">📍 Find on map</button>
+          <a href="${mapsUrl(c)}" target="_blank" rel="noopener">↗ Open Maps</a>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  grid.querySelectorAll('.findmap').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const c = cafes.find(x => x.id === Number(btn.dataset.id));
+      if(c) focusMarker(c);
+    });
+  });
+}
+
+// Generate UI Filters dynamically
+const chipsWrap = document.getElementById('tagChips');
+allTags.forEach(t=>{
+  const btn = document.createElement('button');
+  btn.className = 'chip';
+  btn.textContent = t;
+  btn.addEventListener('click', ()=>{
+    if(activeTags.has(t)){ activeTags.delete(t); btn.classList.remove('active'); }
+    else { activeTags.add(t); btn.classList.add('active'); }
+    render();
+  });
+  chipsWrap.appendChild(btn);
+});
+
+document.getElementById('sortSel').addEventListener('change', e=>{
+  sortBy = e.target.value;
+  render();
+});
+
+render();
+</script>
+
+</body>
+</html>
